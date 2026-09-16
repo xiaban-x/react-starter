@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { track, reportTiming } from './analytics'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
@@ -6,6 +7,16 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+
+  // 埋点示例：页面打开报一条（属性 key 用后台「自定义上报」里配的字段，如 page_l），
+  // 离开时再报一次停留时长。SDK 未注入时（本地 dev）这些调用会自动跳过。
+  useEffect(() => {
+    const lang = navigator.language?.startsWith('zh') ? 'zh' : 'en'
+    track('page_open', { page_l: lang })
+
+    const start = Date.now()
+    return () => reportTiming('page_stay', Math.min(Date.now() - start, 60000))
+  }, [])
 
   return (
     <>
@@ -24,7 +35,11 @@ function App() {
         <button
           type="button"
           className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          onClick={() => {
+            setCount((count) => count + 1)
+            // 埋点示例：把业务动作一起上报（count 若在后台配成字段，也会落到 ext 位上）
+            track('count_click', { page_l: 'zh', count: count + 1 })
+          }}
         >
           Count is {count}
         </button>
